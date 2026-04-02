@@ -41,6 +41,10 @@ WORKDIR /app
 # Copy frontend source code
 COPY backend ./backend
 
+# Include shared repo scripts so they can be invoked from /app/scripts.
+COPY scripts ./scripts
+RUN chmod +x scripts/cleanup-stale-python.sh
+
 # Install dependencies with cache mount
 RUN --mount=type=cache,target=/root/.cache/uv \
     sh -c "cd backend && UV_INDEX_URL=${UV_INDEX_URL:-https://pypi.org/simple} uv sync"

@@ -49,6 +49,9 @@ if ! { \
     exit 1
 fi
 
+# Effective config path for LangGraph
+LANGGRAPH_CONFIG_PATH="${DEER_FLOW_CONFIG_PATH:-$REPO_ROOT/config.yaml}"
+
 # ── Auto-upgrade config ──────────────────────────────────────────────────
 
 "$REPO_ROOT/scripts/config-upgrade.sh"
@@ -73,7 +76,7 @@ trap cleanup_on_failure INT TERM
 mkdir -p logs
 
 echo "Starting LangGraph server..."
-nohup sh -c 'cd backend && NO_COLOR=1 uv run langgraph dev --no-browser --allow-blocking --no-reload > ../logs/langgraph.log 2>&1' &
+nohup sh -c "cd backend && \"$REPO_ROOT/scripts/cleanup-stale-python.sh\" && python \"$REPO_ROOT/scripts/enforce_cloud_embeddings.py\" --config \"$LANGGRAPH_CONFIG_PATH\" && PYTHONPATH=\"$REPO_ROOT/backend:$REPO_ROOT/backend/packages/harness\" NO_COLOR=1 uv run python -m uvicorn app.main:app --host 0.0.0.0 --port 2024 --allow-blocking --n-jobs-per-worker 10 --no-reload > ../logs/langgraph.log 2>&1" &
 ./scripts/wait-for-port.sh 2024 60 "LangGraph" || {
     echo "✗ LangGraph failed to start. Last log output:"
     tail -60 logs/langgraph.log
